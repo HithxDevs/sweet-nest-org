@@ -85,8 +85,61 @@ app.post('/api/v1/signin' , async(req , res:any) => {
 
     
 });
-app.post('/api/v1/content' ,middleware , (req , res) => {
-    res.status(200).json({ message: 'Content created successfully' });
+app.post('/api/v1/content', middleware, async (req, res : any) => {
+    try {
+        const userId = (req as any).user;
+        const { title, type, tags , link } = req.body;
+        
+        const contentTypes = ['text', 'image', 'video', 'audio'] as const;
+        const PostSchema = zod.object({
+            title: zod.string().min(1, 'Title is required'),
+            type: zod.enum(contentTypes),
+            tags: zod.array(zod.string()).optional(),
+            link: zod.string().url('Link must be a valid URL').optional()
+        });
+
+        const parsed_data = PostSchema.safeParse({ title, type, tags , link});
+        if (!parsed_data.success) {
+            return res.status(400).json({ errors: parsed_data.error.errors });
+        }
+
+        const { title: validatedTitle, type: validatedType, tags: validatedTags , link: validatedLink } = parsed_data.data;
+
+        let tagIds: mongoose.Types.ObjectId[] = [];
+        
+        if (validatedTags && validatedTags.length > 0) {
+            for (const tagName of validatedTags) {
+                // Check if tag exists, if not create it
+                let existingTag = await TagsModel.findOne({ title: tagName }); // Changed from 'name' to 'title'
+                
+                if (!existingTag) {
+                    // Create new tag
+                    existingTag = await TagsModel.create({ title: tagName }); // Changed from 'name' to 'title'
+                }
+                
+                tagIds.push(existingTag._id);
+            }
+        }
+
+        const newPost = await PostsModel.create({
+            title: validatedTitle,
+            type: validatedType,
+            userId: new mongoose.Types.ObjectId(userId), // Convert string to ObjectId
+            tags: tagIds,
+            link: validatedLink
+        });
+
+        res.status(201).json({ 
+            message: 'Content created successfully',
+            postId: newPost._id 
+        });
+
+    } catch (error) {
+        console.error('Error creating post:', error);
+        res.status(500).json({ 
+            message: 'Internal server error'
+        });
+    }
 });
 app.get('/api/v1/content' , (req , res:any) => {
     

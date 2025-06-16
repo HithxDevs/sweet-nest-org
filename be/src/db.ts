@@ -22,9 +22,10 @@ const contentTypes = ['text', 'image', 'video', 'audio'];
 
 const PostSchema = new Schema({
     title : { type : String , required: true },
-    content : { type : String ,enum:contentTypes, required: true },
-    author : { type : Types.ObjectId , ref: 'User' , required: true },
+    type : { type : String ,enum:contentTypes, required: true },
+    userId : { type : Types.ObjectId , ref: 'User' , required: true },
     tags : [{ type : Types.ObjectId , ref: 'Tags' }],
+    link: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 })
