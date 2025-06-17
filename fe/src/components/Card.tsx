@@ -1,7 +1,8 @@
-import { Share2, Trash2, FileText, Image, Video, Music, ExternalLink } from 'lucide-react';
+import { Share2, Trash2, FileText, Image, Video, Music, ExternalLink, MoreHorizontal, Twitter } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface CardProps {
-    type: "text" | "image" | "video" | "audio";
+    type: "text" | "image" | "video" | "audio" | "twitter";
     title: string;
     content: string;
     tags?: string[];
@@ -9,6 +10,42 @@ interface CardProps {
 }
 
 export const CardContent = ({ type, title, content, tags, link }: CardProps) => {
+    const [twitterEmbedLoaded, setTwitterEmbedLoaded] = useState(false);
+
+    // Load Twitter embed script
+    useEffect(() => {
+        if (type === 'twitter' && !twitterEmbedLoaded) {
+            const script = document.createElement('script');
+            script.src = 'https://platform.twitter.com/widgets.js';
+            script.async = true;
+            script.onload = () => setTwitterEmbedLoaded(true);
+            document.body.appendChild(script);
+
+            return () => {
+                // Cleanup script if component unmounts
+                const existingScript = document.querySelector('script[src="https://platform.twitter.com/widgets.js"]');
+                if (existingScript) {
+                    document.body.removeChild(existingScript);
+                }
+            };
+        }
+    }, [type, twitterEmbedLoaded]);
+
+    // Extract Twitter/X post ID from URL
+    const extractTwitterId = (url: string): string => {
+        if (!url) return '';
+        const patterns = [
+            /twitter\.com\/\w+\/status\/(\d+)/,
+            /x\.com\/\w+\/status\/(\d+)/
+        ];
+        
+        for (const pattern of patterns) {
+            const match = url.match(pattern);
+            if (match) return match[1];
+        }
+        return '';
+    };
+
     // Extract YouTube video ID from URL or return the ID if already provided
     const extractYouTubeId = (url: string): string => {
         if (!url) return '';
@@ -21,39 +58,33 @@ export const CardContent = ({ type, title, content, tags, link }: CardProps) => 
             const match = url.match(pattern);
             if (match) return match[1];
         }
-        return url; // Return as-is if it's already an ID
+        return url;
     };
 
     // Get the appropriate icon based on type
     const getTypeIcon = () => {
         switch (type) {
             case "text":
-                return <FileText className="w-4 h-4" />;
+                return <FileText className="w-4 h-4 text-blue-600" />;
             case "image":
-                return <Image className="w-4 h-4" />;
+                return <Image className="w-4 h-4 text-blue-600" />;
             case "video":
-                return <Video className="w-4 h-4" />;
+                return <Video className="w-4 h-4 text-blue-600" />;
             case "audio":
-                return <Music className="w-4 h-4" />;
+                return <Music className="w-4 h-4 text-blue-600" />;
+            case "twitter":
+                return <Twitter className="w-4 h-4 text-blue-600" />;
             default:
-                return <FileText className="w-4 h-4" />;
+                return <FileText className="w-4 h-4 text-blue-600" />;
         }
-    };
-
-    // Unified styling for all types
-    const typeStyles = {
-        headerBg: "bg-blue-50",
-        headerBorder: "border-l-blue-600",
-        accentColor: "text-indigo-700",
-        gradient: "bg-gradient-to-r from-blue-600 to-indigo-600"
     };
 
     const renderContent = () => {
         switch (type) {
             case "text":
                 return (
-                    <div className="space-y-4 h-100%">
-                        <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-xs line-clamp-3">
+                    <div className="p-4">
+                        <p className="text-gray-800 text-sm leading-relaxed mb-3">
                             {content}
                         </p>
                         {link && (
@@ -61,7 +92,7 @@ export const CardContent = ({ type, title, content, tags, link }: CardProps) => 
                                 href={link} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center text-blue-600 hover:text-blue-800 text-xs font-medium transition-colors duration-200 hover:underline"
+                                className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
                             >
                                 🔗 View Link
                                 <ExternalLink className="w-3 h-3 ml-1" />
@@ -72,69 +103,61 @@ export const CardContent = ({ type, title, content, tags, link }: CardProps) => 
 
             case "image":
                 return (
-                    <div className="space-y-4 h-100%">
+                    <div>
                         {link && (
-                            <div className="rounded-md overflow-hidden bg-gray-100 shadow-sm h-48">
+                            <div className="w-full h-48 bg-gray-100">
                                 <img 
                                     src={link} 
                                     alt={content}
-                                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                                    className="w-full h-full object-cover"
                                     loading="lazy"
-                                    onError={(e) => {
-                                        e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2Y3ZjdmNyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSI0cHgiPkltYWdlIG5vdCBmb3VuZDwvdGV4dD48L3N2Zz4=';
-                                    }}
                                 />
                             </div>
                         )}
-                        {content && (
-                            <p className="text-gray-700 text-xs italic line-clamp-1">{content}</p>
-                        )}
+                        <div className="p-4">
+                            <p className="text-gray-700 text-sm italic">{content}</p>
+                        </div>
                     </div>
                 );
 
             case "video":
-                const videoId = link ? extractYouTubeId(link) : '';
+                { const videoId = link ? extractYouTubeId(link) : '';
                 return (
-                    <div className="space-y-4 h-100%">
+                    <div >
                         {videoId ? (
-                            <div className="relative w-full bg-black rounded-md overflow-hidden shadow-lg h-48">
+                            <div className="relative w-full h-48 bg-black">
                                 <iframe
                                     className="absolute top-0 left-0 w-full h-full"
                                     src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1`}
                                     title="YouTube video player"
                                     frameBorder="0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                    referrerPolicy="strict-origin-when-cross-origin"
                                     allowFullScreen
-                                    loading="lazy"
                                 />
                             </div>
                         ) : (
-                            <div className="bg-gray-100 rounded-md p-3 text-center border-2 border-dashed border-gray-300 h-24 flex flex-col justify-center">
-                                <div className="flex justify-center mb-1">
-                                    <Video className="w-6 h-6 text-gray-400" />
+                            <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
+                                <div className="text-center">
+                                    <Video className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                    <p className="text-gray-500 text-sm">No video available</p>
                                 </div>
-                                <p className="text-gray-500 font-medium text-xs">No video URL</p>
                             </div>
                         )}
-                        {content && (
-                            <p className="text-gray-700 text-xs line-clamp-1">{content}</p>
-                        )}
+                        <div className="p-4">
+                            <p className="text-gray-700 text-sm">{content}</p>
+                        </div>
                     </div>
-                );
+                ); }
 
             case "audio":
                 return (
-                    <div className="space-y-4 h-100%">
-                        <div className="flex-1">
-                            <p className="font-medium text-indigo-900 text-xs line-clamp-1">{content}</p>
-                        </div>
+                    <div className="p-4">
+                        <p className="text-gray-800 text-sm font-medium mb-3">{content}</p>
                         {link ? (
-                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-md p-3 border border-purple-100">
+                            <div className="bg-gray-50 rounded-lg p-3">
                                 <audio 
                                     controls 
-                                    className="w-full h-8 bg-white rounded-md shadow-sm"
-                                    style={{ filter: 'sepia(20%) saturate(70%) hue-rotate(315deg)' }}
+                                    className="w-full"
                                 >
                                     <source src={link} type="audio/mpeg" />
                                     <source src={link} type="audio/wav" />
@@ -143,70 +166,176 @@ export const CardContent = ({ type, title, content, tags, link }: CardProps) => 
                                 </audio>
                             </div>
                         ) : (
-                            <div className="bg-gray-100 rounded-md p-4 text-center border-2 border-dashed border-gray-300 h-20 flex flex-col justify-center">
-                                <div className="flex justify-center mb-2">
-                                    <Music className="w-6 h-6 text-gray-400" />
-                                </div>
-                                <p className="text-gray-500 font-medium text-xs">No audio URL provided</p>
+                            <div className="bg-gray-50 rounded-lg p-4 text-center">
+                                <Music className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                                <p className="text-gray-500 text-sm">No audio file provided</p>
                             </div>
                         )}
                     </div>
                 );
 
+            case "twitter":
+                { const tweetId = link ? extractTwitterId(link) : '';
+                return (
+                    <div className="p-4">
+                        <p className="text-gray-800 text-sm mb-3">{content}</p>
+                        {tweetId ? (
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                {/* Method 1: Official Twitter Embed */}
+                                <blockquote className="twitter-tweet" data-theme="light">
+                                    <p lang="en" dir="ltr">Loading tweet...</p>
+                                    <a href={link}>View Tweet</a>
+                                </blockquote>
+                                
+                                {/* Fallback link */}
+                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                    <a 
+                                        href={link} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+                                    >
+                                        🐦 View on X/Twitter
+                                        <ExternalLink className="w-3 h-3 ml-1" />
+                                    </a>
+                                </div>
+                            </div>
+                        ) : link ? (
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <div className="text-center">
+                                    <Twitter className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                    <p className="text-gray-500 text-sm mb-2">Custom Twitter Link</p>
+                                    <a 
+                                        href={link} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+                                    >
+                                        🐦 Open Link
+                                        <ExternalLink className="w-3 h-3 ml-1" />
+                                    </a>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-gray-50 rounded-lg p-4 text-center">
+                                <Twitter className="w-6 h-6 text-gray-400 mx-auto mb-2" />
+                                <p className="text-gray-500 text-sm">No Twitter/X link provided</p>
+                            </div>
+                        )}
+                    </div>
+                ); }
+
             default:
-                return <p className="text-gray-500 text-xs">Unknown content type</p>;
+                return (
+                    <div className="p-4">
+                        <p className="text-gray-500 text-sm">Unknown content type</p>
+                    </div>
+                );
         }
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden w-80 hover:shadow-lg transition-shadow duration-300">
-            {/* Header with icon and title */}
-            <div className={`${typeStyles.headerBg} ${typeStyles.headerBorder} border-l-4 px-3 py-2`}>
-                <div className="flex items-center space-x-2">
-                    <div className="flex-shrink-0">
-                        {getTypeIcon()}
-                    </div>
-                    <h3 className={`font-semibold text-sm ${typeStyles.accentColor} truncate flex-1`}>
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden flex-shrink-0 w-80 h-96 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-3 border-b border-gray-100 flex-shrink-0">
+                <div className="flex items-center space-x-2 min-w-0 flex-1">
+                    {getTypeIcon()}
+                    <h3 className="text-blue-600 font-medium text-sm hover:underline cursor-pointer truncate">
                         {title}
                     </h3>
-                    {/* Action buttons */}
-                    <div className="flex items-center space-x-1">
-                        <button className="p-1 rounded-full hover:bg-gray-200 transition-colors duration-200">
-                            <Share2 className="w-3 h-3" />
-                        </button>
-                        <button className="p-1 rounded-full hover:bg-red-100 transition-colors duration-200">
-                            <Trash2 className="w-3 h-3" />
-                        </button>
-                    </div>
+                </div>
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                    <button className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700">
+                        <Share2 className="w-4 h-4" />
+                    </button>
+                    <button className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700">
+                        <MoreHorizontal className="w-4 h-4" />
+                    </button>
+                    <button className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
-            <div className="p-3">
-                {/* Content based on type */}
+            {/* Content - scrollable area */}
+            <div className="flex-1 overflow-y-auto min-h-0">
                 {renderContent()}
-                
-                {/* Tags */}
-                {tags && tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-3 pt-2 border-t border-gray-100">
-                        {tags.slice(0, 3).map((tag, index) => (
+            </div>
+
+            {/* Tags */}
+            {tags && tags.length > 0 && (
+                <div className="px-4 pb-3 flex-shrink-0 border-t border-gray-100 bg-gray-50">
+                    <div className="flex flex-wrap gap-2 pt-3">
+                        {tags.map((tag, index) => (
                             <span 
                                 key={index}
-                                className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full hover:bg-gray-200 transition-all duration-200 cursor-pointer"
+                                className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-medium rounded hover:bg-blue-100 cursor-pointer"
                             >
                                 #{tag}
                             </span>
                         ))}
-                        {tags.length > 3 && (
-                            <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs font-medium rounded-full">
-                                +{tags.length - 3}
-                            </span>
-                        )}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
-            {/* Subtle bottom accent */}
-            <div className={`h-1 bg-gradient-to-r ${typeStyles.gradient}`}></div>
+            {/* Bottom border accent - always at bottom */}
+            <div className="h-1 bg-blue-600 flex-shrink-0"></div>
         </div>
     );
 };
+
+// Demo component showing different content types including Twitter
+export default function CardDemo() {
+    return (
+        <div className="min-h-screen bg-gray-50 p-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-8">Dynamic Content Cards with Twitter Embed</h1>
+            
+            <div className="flex flex-wrap items-start justify-center gap-4 bg-gray-50 p-4">
+                {/* Text Card */}
+                <CardContent
+                    type="text"
+                    title="Text Post Example"
+                    content="This is a text post with some interesting content. It can be multiple lines and even include line breaks."
+                    tags={["announcement", "text", "update"]}
+                    link="https://example.com"
+                />
+
+                {/* Twitter Card */}
+                <CardContent
+                    type="twitter"
+                    title="Twitter Post Example"
+                    content="Check out this interesting tweet about web development!"
+                    tags={["twitter", "social", "web-dev"]}
+                    link="https://twitter.com/elonmusk/status/1234567890123456789"
+                />
+
+                {/* Image Card */}
+                <CardContent
+                    type="image"
+                    title="Image Post Example"
+                    content="Beautiful sunset landscape captured in the mountains"
+                    tags={["photography", "nature", "sunset"]}
+                    link="https://picsum.photos/800/600"
+                />
+
+                {/* Video Card */}
+                <CardContent
+                    type="video"
+                    title="Video Post Example"
+                    content="Check out this amazing video content!"
+                    tags={["video", "entertainment", "youtube"]}
+                    link="https://youtu.be/JgDNFQ2RaLQ?si=Krp7JX35rgqOlg7v"
+                />
+
+                {/* Audio Card */}
+                <CardContent
+                    type="audio"
+                    title="Audio Post Example"
+                    content="Relaxing Nature Sounds - Forest Ambience"
+                    tags={["audio", "nature", "relaxation"]}
+                    link="https://commondatastorage.googleapis.com/codeskulptor-demos/DDR_assets/Kangaroo_MusiQue_-_The_Neverwritten_Role_Playing_Game.mp3"
+                />
+            </div>
+        </div>
+    );
+}
