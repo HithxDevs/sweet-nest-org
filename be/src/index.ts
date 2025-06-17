@@ -9,6 +9,7 @@ import {JWT_SECRET} from './config';
 import { UserModel, PostsModel, TagsModel, LinksModel } from './db';
 import {middleware} from './middleware';
 import cookieParser from 'cookie-parser';
+import { hashing } from './utils';
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -147,11 +148,67 @@ app.get('/api/v1/content' , (req , res:any) => {
 app.delete('/api/v1/content' , (req , res:any) => {
 
 });
-app.post('/api/v1/soul/share' , (req , res:any) => {
-    
+app.post('/api/v1/soul/share' ,middleware , async(req , res:any) => {
+    const userId = (req as any).user;
+
+    const issharable = req.body.issharable;
+    const checkuserlink = await LinksModel.findOne({
+        userId: new mongoose.Types.ObjectId(userId)
+    });
+    if(checkuserlink && issharable) {
+         res.status(400).json({ message: 'Link already exists' });
+         return;
+    }
+    if(issharable){
+        const hash = hashing(20);
+        await LinksModel.create({
+            hash,
+            userId: new mongoose.Types.ObjectId(userId)
+        })
+        res.status(201).json({ message: 'Link created successfully', hash });
+        return;
+    }else{
+        await LinksModel.deleteOne({
+            userId: new mongoose.Types.ObjectId(userId)
+        })
+        res.status(200).json({ message: 'Link deleted successfully' });
+        return;
+    }
+
 });
-app.get('/api/v1/soul/:shareLink' , (req , res:any) => {
-    
+app.get('/api/v1/soul/:shareLink', async(req, res : any) => {
+    try {
+        const hash = req.params.shareLink;
+        const userlink = await LinksModel.findOne({ hash });
+        
+        if(!userlink) {
+            return res.status(404).json({ message: 'Link not found' });
+        }
+        
+        const userdetails = await UserModel.findOne({ _id: userlink.userId });
+        if(!userdetails) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        
+        // Fixed: Added proper query object for finding posts by userId
+        const userPosts = await PostsModel.find({ userId: userlink.userId });
+        
+        res.status(200).json({
+            message: 'Link found',
+            user: {
+                userId: userdetails._id,
+                username: userdetails.username,
+                email: userdetails.email,
+                createdAt: userdetails.createdAt,
+                updatedAt: userdetails.updatedAt 
+            },
+            link: userlink.hash,
+            posts: userPosts // Return all posts instead of just one
+        });
+    } catch (error) {
+        console.error('Error fetching shared link:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 });
 
 

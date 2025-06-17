@@ -23,6 +23,7 @@ const config_1 = require("./config");
 const db_1 = require("./db");
 const middleware_1 = require("./middleware");
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const utils_1 = require("./utils");
 const PORT = process.env.PORT || 3000;
 const app = (0, express_1.default)();
 const saltRounds = 5;
@@ -82,18 +83,19 @@ app.post('/api/v1/signin', (req, res) => __awaiter(void 0, void 0, void 0, funct
 app.post('/api/v1/content', middleware_1.middleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = req.user;
-        const { title, type, tags } = req.body;
+        const { title, type, tags, link } = req.body;
         const contentTypes = ['text', 'image', 'video', 'audio'];
         const PostSchema = zod_1.default.object({
             title: zod_1.default.string().min(1, 'Title is required'),
             type: zod_1.default.enum(contentTypes),
-            tags: zod_1.default.array(zod_1.default.string()).optional()
+            tags: zod_1.default.array(zod_1.default.string()).optional(),
+            link: zod_1.default.string().url('Link must be a valid URL').optional()
         });
-        const parsed_data = PostSchema.safeParse({ title, type, tags });
+        const parsed_data = PostSchema.safeParse({ title, type, tags, link });
         if (!parsed_data.success) {
             return res.status(400).json({ errors: parsed_data.error.errors });
         }
-        const { title: validatedTitle, type: validatedType, tags: validatedTags } = parsed_data.data;
+        const { title: validatedTitle, type: validatedType, tags: validatedTags, link: validatedLink } = parsed_data.data;
         let tagIds = [];
         if (validatedTags && validatedTags.length > 0) {
             for (const tagName of validatedTags) {
@@ -110,7 +112,8 @@ app.post('/api/v1/content', middleware_1.middleware, (req, res) => __awaiter(voi
             title: validatedTitle,
             type: validatedType,
             userId: new mongoose_1.default.Types.ObjectId(userId), // Convert string to ObjectId
-            tags: tagIds
+            tags: tagIds,
+            link: validatedLink
         });
         res.status(201).json({
             message: 'Content created successfully',
@@ -128,8 +131,62 @@ app.get('/api/v1/content', (req, res) => {
 });
 app.delete('/api/v1/content', (req, res) => {
 });
-app.post('/api/v1/soul/share', (req, res) => {
-});
-app.get('/api/v1/soul/:shareLink', (req, res) => {
-});
+app.post('/api/v1/soul/share', middleware_1.middleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const userId = req.user;
+    const issharable = req.body.issharable;
+    const checkuserlink = yield db_1.LinksModel.findOne({
+        userId: new mongoose_1.default.Types.ObjectId(userId)
+    });
+    if (checkuserlink && issharable) {
+        res.status(400).json({ message: 'Link already exists' });
+        return;
+    }
+    if (issharable) {
+        const hash = (0, utils_1.hashing)(20);
+        yield db_1.LinksModel.create({
+            hash,
+            userId: new mongoose_1.default.Types.ObjectId(userId)
+        });
+        res.status(201).json({ message: 'Link created successfully', hash });
+        return;
+    }
+    else {
+        yield db_1.LinksModel.deleteOne({
+            userId: new mongoose_1.default.Types.ObjectId(userId)
+        });
+        res.status(200).json({ message: 'Link deleted successfully' });
+        return;
+    }
+}));
+app.get('/api/v1/soul/:shareLink', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const hash = req.params.shareLink;
+        const userlink = yield db_1.LinksModel.findOne({ hash });
+        if (!userlink) {
+            return res.status(404).json({ message: 'Link not found' });
+        }
+        const userdetails = yield db_1.UserModel.findOne({ _id: userlink.userId });
+        if (!userdetails) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        // Fixed: Added proper query object for finding posts by userId
+        const userPosts = yield db_1.PostsModel.find({ userId: userlink.userId });
+        res.status(200).json({
+            message: 'Link found',
+            user: {
+                userId: userdetails._id,
+                username: userdetails.username,
+                email: userdetails.email,
+                createdAt: userdetails.createdAt,
+                updatedAt: userdetails.updatedAt
+            },
+            link: userlink.hash,
+            posts: userPosts // Return all posts instead of just one
+        });
+    }
+    catch (error) {
+        console.error('Error fetching shared link:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}));
 app.listen(PORT);
