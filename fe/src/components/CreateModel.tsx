@@ -1,6 +1,7 @@
 import { X, FileText, Image, Video, Music } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./Button";
+import { API_BASE_URL } from "../api";
 interface CreateModelProps {
     open: boolean;
     onClose: () => void;
@@ -47,6 +48,7 @@ const Select = ({ options, onChange, placeholder, value = "" }: {
     );
 };
 
+
 export const CreateModel = ({ open, onClose }: CreateModelProps) => {
     const [formData, setFormData] = useState({
         title: "",
@@ -63,13 +65,24 @@ export const CreateModel = ({ open, onClose }: CreateModelProps) => {
         { value: "audio", label: "Audio Content", icon: <Music className="w-4 h-4" /> }
     ];
 
-    const handleSubmit = () => {
+    async function handleSubmit() {
         if (!formData.title || !formData.content || !formData.type) {
             alert("Please fill in all required fields");
             return;
         }
         console.log("Creating post:", formData);
+        const response = await axios.post(API_BASE_URL + "/api/v1/content", formData, {
+                            withCredentials: true,
+                        });
+
+        if (response.status !== 201) {
+            alert("Failed to create post");
+            return;
+        }
+
         alert("Post Created Successfully!");
+
+
         // Reset form
         setFormData({
             title: "",

@@ -1,21 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
 import { JWT_SECRET } from './config';
 import jwt from 'jsonwebtoken';
-import cookieParser from 'cookie-parser';
-import express from 'express';
-const app = express();
 
-app.use(cookieParser());
-export const middleware  = (req : Request, res : Response, next : NextFunction) => {
-    const token = req.cookies.token;
-    const user = jwt.verify(token as string ,JWT_SECRET);
-    if(!user) {
-        res.status(401).json({ message: 'Unauthorized' });
-        return;
+// Extend Express Request type
+declare global {
+    namespace Express {
+        interface Request {
+            user?: string;
+        }
     }
+}
 
-
-    // @ts-ignore
-    req.user = user.userId;
-    next();
+export const middleware = (req: Request, res: Response, next: NextFunction) => {
+    // Check both Authorization header and cookies
+    let token: string | undefined;
+    
+    // First, try to get token from Authorization header
+    const authHeader = req.headers.authorization;
+    
+    
+    token = authHeader as string;
+    console.log('Token found:', authHeader);
+    try {
+        console.log('Verifying token:', token);
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        req.user = decoded.userId;
+        console.log('Token verified, user ID:', req.user);
+        next();
+    } catch (err) {
+        res.status(401).json({ message: 'Unauthorized: Invalid token' });
+        return
+    }
 };

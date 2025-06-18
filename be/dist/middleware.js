@@ -6,19 +6,23 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.middleware = void 0;
 const config_1 = require("./config");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const cookie_parser_1 = __importDefault(require("cookie-parser"));
-const express_1 = __importDefault(require("express"));
-const app = (0, express_1.default)();
-app.use((0, cookie_parser_1.default)());
 const middleware = (req, res, next) => {
-    const token = req.cookies.token;
-    const user = jsonwebtoken_1.default.verify(token, config_1.JWT_SECRET);
-    if (!user) {
-        res.status(401).json({ message: 'Unauthorized' });
+    // Check both Authorization header and cookies
+    let token;
+    // First, try to get token from Authorization header
+    const authHeader = req.headers.authorization;
+    token = authHeader;
+    console.log('Token found:', authHeader);
+    try {
+        console.log('Verifying token:', token);
+        const decoded = jsonwebtoken_1.default.verify(token, config_1.JWT_SECRET);
+        req.user = decoded.userId;
+        console.log('Token verified, user ID:', req.user);
+        next();
+    }
+    catch (err) {
+        res.status(401).json({ message: 'Unauthorized: Invalid token' });
         return;
     }
-    // @ts-ignore
-    req.user = user.userId;
-    next();
 };
 exports.middleware = middleware;

@@ -21,6 +21,7 @@ const contentTypes = ['text', 'image', 'video', 'audio'];
 const PostSchema = new Schema({
     title: { type: String, required: true },
     type: { type: String, enum: contentTypes, required: true },
+    content: { type: String, required: false }, // Optional for non-text types
     userId: { type: Types.ObjectId, ref: 'User', required: true },
     tags: [{ type: Types.ObjectId, ref: 'Tags' }],
     link: { type: String, required: true },

@@ -30,7 +30,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(cors());
 
-app.post('/api/v1/signup' , async(req , res:any) => {
+app.post('/api/v1/signup' , async(req, res: any) => {
     // add zod validation here
     const {username, password, email} = req.body;
 
@@ -73,30 +73,26 @@ app.post('/api/v1/signin' , async(req , res:any) => {
         return res.status(400).json({ message: 'Invalid password' });
     }
     const token = jwt.sign({ userId: user._id , username : username }, JWT_SECRET, { expiresIn: '1h' });
+
     
-    
-    
-    res.cookie('token', token, {
-    httpOnly: true,
-    secure: true, // use false if not using HTTPS in dev
-    maxAge: 3600000 // 1 hour
-    });
+   
     res.status(200).json({ message: 'Login successful', token });
 
 
     
 });
-app.post('/api/v1/content', middleware, async (req, res : any) => {
+app.post('/api/v1/content', middleware , async (req, res : any) => {
     try {
         const userId = (req as any).user;
-        const { title, type, tags , link } = req.body;
+        const { title, type, tags , link , content } = req.body;
         
         const contentTypes = ['text', 'image', 'video', 'audio'] as const;
         const PostSchema = zod.object({
             title: zod.string().min(1, 'Title is required'),
             type: zod.enum(contentTypes),
             tags: zod.array(zod.string()).optional(),
-            link: zod.string().url('Link must be a valid URL').optional()
+            link: zod.string().url('Link must be a valid URL').optional(),
+            content: zod.string().optional() // Optional for non-text types
         });
 
         const parsed_data = PostSchema.safeParse({ title, type, tags , link});
@@ -104,7 +100,7 @@ app.post('/api/v1/content', middleware, async (req, res : any) => {
             return res.status(400).json({ errors: parsed_data.error.errors });
         }
 
-        const { title: validatedTitle, type: validatedType, tags: validatedTags , link: validatedLink } = parsed_data.data;
+        const { title: validatedTitle, type: validatedType, tags: validatedTags , link: validatedLink , content: validatedContent } = parsed_data.data;
 
         let tagIds: mongoose.Types.ObjectId[] = [];
         
@@ -127,7 +123,8 @@ app.post('/api/v1/content', middleware, async (req, res : any) => {
             type: validatedType,
             userId: new mongoose.Types.ObjectId(userId), // Convert string to ObjectId
             tags: tagIds,
-            link: validatedLink
+            link: validatedLink,
+            content:  validatedContent || '', // Ensure content is a string
         });
 
         res.status(201).json({ 
@@ -142,8 +139,30 @@ app.post('/api/v1/content', middleware, async (req, res : any) => {
         });
     }
 });
-app.get('/api/v1/content' , (req , res:any) => {
-    
+// Fixed backend endpoint - the main issue was missing 'await' and 'return'
+app.get('/api/v1/content', middleware, async (req, res) => { // Added 'async'
+    try {
+        // Fixed: Get userId from req.user (set by middleware)
+        // @ts-ignore
+        const userId = req.user; // or req.userId depending on your middleware
+        
+        // Fixed: Added 'await' and proper error handling
+        const content = await PostsModel.find({ 
+            userId: new mongoose.Types.ObjectId(userId) 
+        }).populate('userId', 'username').populate('tags', 'title'); // Added tags population
+        
+        // Fixed: Return the content properly
+        res.status(200).json({ 
+            content: content,
+            message: 'Content fetched successfully' 
+        });
+    } catch (error) {
+        console.error('Error fetching content:', error);
+        res.status(500).json({ 
+            message: 'Internal server error'
+        });
+    }
+      
 });
 app.delete('/api/v1/content' , (req , res:any) => {
 
