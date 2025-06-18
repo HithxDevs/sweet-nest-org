@@ -13,7 +13,7 @@ interface InputProps {
     type?: string;
 }
 
-const Input = ({ onChange, placeholder, value = "", type = "text" }: InputProps) => {
+export const Input = ({ onChange, placeholder, value = "", type = "text" }: InputProps) => {
     return (
         <input
             type={type}

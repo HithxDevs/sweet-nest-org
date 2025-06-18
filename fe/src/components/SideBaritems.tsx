@@ -8,7 +8,8 @@ import {
   Headphones, 
   Twitter,
   Settings,
-  Bell
+  Bell,
+  Bird
 } from 'lucide-react';
 
 export const Sidebarcontent = () => {
@@ -29,12 +30,11 @@ export const Sidebarcontent = () => {
       {/* Header */}
       <div className="p-4 border-b border-white/20">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-bold text-lg">
-            S
-          </div>
+          {/* add some icon */}
           <div>
+            <Bird size={32} className="text-white" />
             <h1 className="text-xl text-white font-semibold">
-              sweernest.og
+              sweetnest.og
             </h1>
             <p className="text-xs text-white-400">Content Creator</p>
           </div>
