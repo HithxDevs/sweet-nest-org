@@ -1,4 +1,4 @@
-import { Share2, Trash2, FileText, Image, Video, Music, ExternalLink, MoreHorizontal, Twitter, Heart, Bookmark, MessageCircle } from 'lucide-react';
+import { Share2,  FileText, Image, Video, Music, ExternalLink, MoreHorizontal, Twitter, Heart, Bookmark } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 interface CardProps {

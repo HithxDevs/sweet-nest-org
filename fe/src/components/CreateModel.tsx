@@ -12,7 +12,7 @@ interface InputProps {
     placeholder: string;
     value?: string;
     type?: string;
-    inputRef?: React.RefObject<HTMLInputElement>;
+    inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export const Input = ({ onChange, placeholder, value = "", type = "text", inputRef }: InputProps) => {
@@ -85,7 +85,7 @@ export const CreateModel = ({ open, onClose }: CreateModelProps) => {
     // Using useRef for all form inputs
     const titleRef = useRef<HTMLInputElement>(null);
     const contentRef = useRef<HTMLTextAreaElement>(null);
-    const typeRef = useRef<HTMLSelectElement>(null);
+    const typeRef = useRef<HTMLSelectElement>(null!);
     const linkRef = useRef<HTMLInputElement>(null);
     const tagRef = useRef<HTMLInputElement>(null);
 

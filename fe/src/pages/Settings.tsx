@@ -1,6 +1,6 @@
 import { Bird } from "lucide-react"
 import { Button } from "../components/Button";
-import { Link, useNavigate } from "react-router-dom";
+import {  useNavigate } from "react-router-dom";
 
 export const Settings = () => {
     const navigate = useNavigate();
