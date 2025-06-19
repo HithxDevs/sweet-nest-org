@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Lock, User, Mail, Bird, UserPlus, Check } from 'lucide-react';
 import { Button } from '../components/Button';
 import { useRef } from 'react';
