@@ -155,7 +155,7 @@ app.get('/api/v1/content', middleware, async (req, res) => {
         if (content && content.length > 0) {
             // Collect all unique tag IDs from all posts
             const allTagIds = [...new Set(content.flatMap(post => 
-                (post.tags || []).map(tagId => tagId.toString())
+                (post.tags || []).map((tagId: mongoose.Types.ObjectId | string) => tagId.toString())
             ))];
             
             if (allTagIds.length > 0) {
@@ -172,12 +172,16 @@ app.get('/api/v1/content', middleware, async (req, res) => {
                 const contentWithTagNames = content.map(post => {
                     const postObj = post.toObject(); // Convert Mongoose document to plain object
                     if (postObj.tags && postObj.tags.length > 0) {
-                        postObj.tags = postObj.tags.map(tagId => {
+                        // Map tag IDs to tag names, keeping it as an array
+                        postObj.tags = postObj.tags.map((tagId: mongoose.Types.ObjectId | string) => {
                             const tagIdString = tagId.toString();
                             const tagName = tagMap.get(tagIdString);
                             console.log(`Mapping ${tagIdString} to ${tagName}`); // Debug log
                             return tagName || tagIdString; // Fallback to ID string if not found
                         });
+                    } else {
+                        // Ensure tags is always an array, even if empty
+                        postObj.tags = [];
                     }
                     return postObj;
                 });
