@@ -30,7 +30,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
         } else {
             setIsSidebarOpen(false); // Default closed on mobile
         }
-    }, []); // Empty dependency array - only run once on mount
+    }, [setIsSidebarOpen]); // Empty dependency array - only run once on mount
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
