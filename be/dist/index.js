@@ -133,7 +133,7 @@ app.get('/api/v1/content', middleware_1.middleware, (req, res) => __awaiter(void
         // Fixed: Added 'await' and proper error handling
         const content = yield db_1.PostsModel.find({
             userId: new mongoose_1.default.Types.ObjectId(userId)
-        }).populate('userId', 'username').populate('tags', 'title'); // Added tags population
+        }); // Added tags population
         // Fixed: Return the content properly
         res.status(200).json({
             content: content,

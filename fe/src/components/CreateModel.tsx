@@ -1,42 +1,47 @@
 import { X, FileText, Image, Video, Music } from "lucide-react";
-import { useState } from "react";
-import { Button } from "./Button";
-import { API_BASE_URL } from "../api";
+import { useRef, useState } from "react";
+
+const API_BASE_URL = "https://api.example.com"; // Mock API URL
+
 interface CreateModelProps {
     open: boolean;
     onClose: () => void;
 }
 
 interface InputProps {
-    onChange: (value: string) => void;
+    onChange?: (value: string) => void;
     placeholder: string;
     value?: string;
     type?: string;
+    inputRef?: React.RefObject<HTMLInputElement>;
 }
 
-export const Input = ({ onChange, placeholder, value = "", type = "text" }: InputProps) => {
+export const Input = ({ onChange, placeholder, value = "", type = "text", inputRef }: InputProps) => {
     return (
         <input
+            ref={inputRef}
             type={type}
             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
             placeholder={placeholder}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
+            defaultValue={value}
+            onChange={(e) => onChange && onChange(e.target.value)}
         />
     );
 };
 
-const Select = ({ options, onChange, placeholder, value = "" }: {
+const Select = ({ options, onChange, placeholder, value = "", selectRef }: {
     options: { value: string; label: string; icon?: React.ReactNode }[];
-    onChange: (value: string) => void;
+    onChange?: (value: string) => void;
     placeholder: string;
     value?: string;
+    selectRef?: React.RefObject<HTMLSelectElement>;
 }) => {
     return (
         <select
+            ref={selectRef}
             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
+            defaultValue={value}
+            onChange={(e) => onChange && onChange(e.target.value)}
         >
             <option value="" disabled>{placeholder}</option>
             {options.map((option) => (
@@ -48,15 +53,45 @@ const Select = ({ options, onChange, placeholder, value = "" }: {
     );
 };
 
+const Button = ({ text, variant, size, onClick, disabled }: {
+    text: string;
+    variant: 'primary' | 'secondary';
+    size: 'sm' | 'md' | 'lg';
+    onClick: () => void;
+    disabled?: boolean;
+}) => {
+    const baseClasses = "font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2";
+    const variantClasses = {
+        primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
+        secondary: "bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400"
+    };
+    const sizeClasses = {
+        sm: "px-3 py-1.5 text-sm",
+        md: "px-4 py-2",
+        lg: "px-6 py-3 text-lg"
+    };
+    
+    return (
+        <button
+            className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            onClick={onClick}
+            disabled={disabled}
+        >
+            {text}
+        </button>
+    );
+};
 
 export const CreateModel = ({ open, onClose }: CreateModelProps) => {
-    const [formData, setFormData] = useState({
-        title: "",
-        content: "",
-        type: "",
-        link: "",
-        tags: ""
-    });
+    // Using useRef for all form inputs
+    const titleRef = useRef<HTMLInputElement>(null);
+    const contentRef = useRef<HTMLTextAreaElement>(null);
+    const typeRef = useRef<HTMLSelectElement>(null);
+    const linkRef = useRef<HTMLInputElement>(null);
+    const tagRef = useRef<HTMLInputElement>(null);
+
+    // Only keeping contentType state for conditional placeholder text
+    const [contentType, setContentType] = useState("");
 
     const contentTypes = [
         { value: "text", label: "Text Content", icon: <FileText className="w-4 h-4" /> },
@@ -65,45 +100,71 @@ export const CreateModel = ({ open, onClose }: CreateModelProps) => {
         { value: "audio", label: "Audio Content", icon: <Music className="w-4 h-4" /> }
     ];
 
+    const getFormData = () => {
+        return {
+            title: titleRef.current?.value || "",
+            content: contentRef.current?.value || "",
+            type: typeRef.current?.value || "",
+            link: linkRef.current?.value || "",
+            tags: tagRef.current?.value || ""
+        };
+    };
+
+    const resetForm = () => {
+        if (titleRef.current) titleRef.current.value = "";
+        if (contentRef.current) contentRef.current.value = "";
+        if (typeRef.current) typeRef.current.value = "";
+        if (linkRef.current) linkRef.current.value = "";
+        if (tagRef.current) tagRef.current.value = "";
+        setContentType("");
+    };
+
+    const isFormValid = () => {
+        const data = getFormData();
+        return data.title && data.content && data.type;
+    };
+
     async function handleSubmit() {
+        const formData = getFormData();
+        
         if (!formData.title || !formData.content || !formData.type) {
             alert("Please fill in all required fields");
             return;
         }
+
         console.log("Creating post:", formData);
-        const response = await axios.post(API_BASE_URL + "/api/v1/content", formData, {
-                            withCredentials: true,
-                        });
+        
+        try {
+            // Mock API call - replace with actual axios call
+            const response = await fetch(API_BASE_URL + "/api/v1/content", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
 
-        if (response.status !== 201) {
+            if (!response.ok) {
+                alert("Failed to create post");
+                return;
+            }
+
+            alert("Post Created Successfully!");
+            resetForm();
+            onClose();
+        } catch (error) {
+            console.error("Error creating post:", error);
             alert("Failed to create post");
-            return;
         }
+    }
 
-        alert("Post Created Successfully!");
-
-
-        // Reset form
-        setFormData({
-            title: "",
-            content: "",
-            type: "",
-            link: "",
-            tags: ""
-        });
+    const handleClose = () => {
+        resetForm();
         onClose();
     };
 
-    const handleClose = () => {
-        setFormData({
-            title: "",
-            content: "",
-            type: "",
-            link: "",
-            tags: ""
-        });
-  
-        onClose();
+    const handleTypeChange = (value: string) => {
+        setContentType(value);
     };
 
     if (!open) return null;
@@ -140,10 +201,10 @@ export const CreateModel = ({ open, onClose }: CreateModelProps) => {
                         <label className="text-sm font-medium text-gray-700">
                             Title <span className="text-red-500">*</span>
                         </label>
-                        <Input
-                            onChange={(value) => setFormData(prev => ({ ...prev, title: value }))}
+                        <input
+                            ref={titleRef}
+                            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-gray-400"
                             placeholder="Enter post title"
-                            value={formData.title}
                         />
                     </div>
 
@@ -155,8 +216,7 @@ export const CreateModel = ({ open, onClose }: CreateModelProps) => {
                             className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder-gray-400 resize-none"
                             placeholder="Enter post content"
                             rows={3}
-                            value={formData.content}
-                            onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                            ref={contentRef}
                         />
                     </div>
 
@@ -166,41 +226,42 @@ export const CreateModel = ({ open, onClose }: CreateModelProps) => {
                         </label>
                         <Select
                             options={contentTypes}
-                            onChange={(value) => setFormData(prev => ({ ...prev, type: value }))}
+                            onChange={handleTypeChange}
                             placeholder="Choose content type"
-                            value={formData.type}
+                            //@ts-ignore
+                            selectRef={typeRef}
                         />
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">
-                            Link {formData.type && (
+                            Link {contentType && (
                                 <span className="text-xs text-gray-500">
-                                    ({formData.type === 'video' ? 'YouTube URL' : 
-                                      formData.type === 'image' ? 'Image URL' : 
-                                      formData.type === 'audio' ? 'Audio URL' : 'Reference URL'})
+                                    ({contentType === 'video' ? 'YouTube URL' : 
+                                      contentType === 'image' ? 'Image URL' : 
+                                      contentType === 'audio' ? 'Audio URL' : 'Reference URL'})
                                 </span>
                             )}
                         </label>
                         <Input
-                            onChange={(value) => setFormData(prev => ({ ...prev, link: value }))}
                             placeholder={
-                                formData.type === 'video' ? "https://youtube.com/watch?v=..." :
-                                formData.type === 'image' ? "https://example.com/image.jpg" :
-                                formData.type === 'audio' ? "https://example.com/audio.mp3" :
+                                contentType === 'video' ? "https://youtube.com/watch?v=..." :
+                                contentType === 'image' ? "https://example.com/image.jpg" :
+                                contentType === 'audio' ? "https://example.com/audio.mp3" :
                                 "Enter link (optional)"
                             }
-                            value={formData.link}
                             type="url"
+                            //@ts-ignore
+                            inputRef={linkRef}
                         />
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">Tags</label>
                         <Input
-                            onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
                             placeholder="Enter tags separated by commas"
-                            value={formData.tags}
+                            //@ts-ignore
+                            inputRef={tagRef}
                         />
                         <p className="text-xs text-gray-500">
                             Example: javascript, react, tutorial
@@ -221,7 +282,7 @@ export const CreateModel = ({ open, onClose }: CreateModelProps) => {
                         variant="primary"
                         size="md"
                         onClick={handleSubmit}
-                        disabled={!formData.title || !formData.content || !formData.type}
+                        disabled={!isFormValid()}
                     />
                 </div>
             </div>
