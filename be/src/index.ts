@@ -95,7 +95,7 @@ app.post('/api/v1/content', middleware , async (req, res : any) => {
             content: zod.string().optional() // Optional for non-text types
         });
 
-        const parsed_data = PostSchema.safeParse({ title, type, tags , link});
+        const parsed_data = PostSchema.safeParse({ title, type, tags , link ,content});
         if (!parsed_data.success) {
             return res.status(400).json({ errors: parsed_data.error.errors });
         }
@@ -140,29 +140,67 @@ app.post('/api/v1/content', middleware , async (req, res : any) => {
     }
 });
 // Fixed backend endpoint - the main issue was missing 'await' and 'return'
-app.get('/api/v1/content', middleware, async (req, res) => { // Added 'async'
+app.get('/api/v1/content', middleware, async (req, res) => {
     try {
-        // Fixed: Get userId from req.user (set by middleware)
+        // Get userId from req.user (set by middleware)
         // @ts-ignore
         const userId = req.user; // or req.userId depending on your middleware
         
-        // Fixed: Added 'await' and proper error handling
-        const content = await PostsModel.find({ 
-            userId: new mongoose.Types.ObjectId(userId) 
-        }) // Added tags population
-        
-        // Fixed: Return the content properly
-        res.status(200).json({ 
-            content: content,
-            message: 'Content fetched successfully' 
+        // Fetch content for the user
+        let content = await PostsModel.find({
+            userId: new mongoose.Types.ObjectId(userId)
         });
+        
+        // Tag mapping logic
+        if (content && content.length > 0) {
+            // Collect all unique tag IDs from all posts
+            const allTagIds = [...new Set(content.flatMap(post => 
+                (post.tags || []).map(tagId => tagId.toString())
+            ))];
+            
+            if (allTagIds.length > 0) {
+                // Get all tags in one query
+                const allTags = await TagsModel.find({
+                    _id: { $in: allTagIds }
+                }).select('title');
+                
+                // Create a map for quick lookup
+                const tagMap = new Map(allTags.map(tag => [tag._id.toString(), tag.title]));
+                console.log('Tag Map:', tagMap);
+                
+                // Convert to plain objects and replace tag IDs with names
+                const contentWithTagNames = content.map(post => {
+                    const postObj = post.toObject(); // Convert Mongoose document to plain object
+                    if (postObj.tags && postObj.tags.length > 0) {
+                        postObj.tags = postObj.tags.map(tagId => {
+                            const tagIdString = tagId.toString();
+                            const tagName = tagMap.get(tagIdString);
+                            console.log(`Mapping ${tagIdString} to ${tagName}`); // Debug log
+                            return tagName || tagIdString; // Fallback to ID string if not found
+                        });
+                    }
+                    return postObj;
+                });
+                
+                // Update content variable to use the modified version
+                content = contentWithTagNames;
+                
+                console.log('Content after mapping:', JSON.stringify(content, null, 2));
+            }
+        }
+        
+        // Return the content with tag names
+        res.status(200).json({
+            content: content,
+            message: 'Content fetched successfully'
+        });
+        
     } catch (error) {
         console.error('Error fetching content:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             message: 'Internal server error'
         });
     }
-      
 });
 app.delete('/api/v1/content' , (req , res:any) => {
 

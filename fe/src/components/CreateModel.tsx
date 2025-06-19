@@ -1,7 +1,6 @@
 import { X, FileText, Image, Video, Music, Twitter } from "lucide-react";
 import { useRef, useState } from "react";
-
-const API_BASE_URL = "http://localhost:3000"; // Updated to match your backend
+import { API_BASE_URL } from "../api";
 
 interface CreateModelProps {
     open: boolean;
