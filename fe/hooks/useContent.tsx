@@ -1,13 +1,13 @@
 // Fixed useContent hook with TypeScript types
-import  { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../src/api';
 
 // Define the content item type
 interface ContentItem {
     _id: string;
     title: string;
-    type: 'text' | 'image' | 'video' | 'audio';
+    type: 'text' | 'image' | 'video' | 'audio' | 'twitter' ;
     content?: string;
     tags?: { _id: string; title: string; }[];
     link?: string;

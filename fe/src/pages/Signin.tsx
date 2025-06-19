@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Eye, EyeOff, Lock, User, Bird } from 'lucide-react';
 import axios from 'axios'; // Missing import!
 import { API_BASE_URL } from '../api';
+import { Link } from 'react-router-dom';
 
 export const Signin = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +33,8 @@ export const Signin = () => {
             if (response.status === 200) {
                 alert("Signin successful!");
                 localStorage.setItem("token", (response.data as { token: string }).token);
-                window.location.href = "/dashboard";
+
+                window.location.assign("/dashboard");
             } else {
                 alert("Error in Signin. Please try again.");
             }
@@ -163,9 +165,9 @@ export const Signin = () => {
                         {/* Sign Up Link */}
                         <p className="text-center text-gray-600 mt-4 sm:mt-6 text-xs sm:text-sm">
                             Don't have an account?{' '}
-                            <a href="/signup" className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors">
+                            <Link to="/signup" className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors">
                                 Create Account
-                            </a>
+                            </Link>
                         </p>
                     </div>
                 </div>

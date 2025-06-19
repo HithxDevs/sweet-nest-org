@@ -79,7 +79,7 @@ app.post('/api/v1/content', middleware_1.middleware, (req, res) => __awaiter(voi
     try {
         const userId = req.user;
         const { title, type, tags, link, content } = req.body;
-        const contentTypes = ['text', 'image', 'video', 'audio'];
+        const contentTypes = ['text', 'image', 'video', 'audio' ,'twitter', 'youtube', 'instagram', 'tiktok'];
         const PostSchema = zod_1.default.object({
             title: zod_1.default.string().min(1, 'Title is required'),
             type: zod_1.default.enum(contentTypes),
@@ -87,7 +87,7 @@ app.post('/api/v1/content', middleware_1.middleware, (req, res) => __awaiter(voi
             link: zod_1.default.string().url('Link must be a valid URL').optional(),
             content: zod_1.default.string().optional() // Optional for non-text types
         });
-        const parsed_data = PostSchema.safeParse({ title, type, tags, link });
+        const parsed_data = PostSchema.safeParse({ title, type, tags, link , content});
         if (!parsed_data.success) {
             return res.status(400).json({ errors: parsed_data.error.errors });
         }
@@ -104,6 +104,8 @@ app.post('/api/v1/content', middleware_1.middleware, (req, res) => __awaiter(voi
                 tagIds.push(existingTag._id);
             }
         }
+        console.log(validatedContent);
+        
         const newPost = yield db_1.PostsModel.create({
             title: validatedTitle,
             type: validatedType,
@@ -130,10 +132,50 @@ app.get('/api/v1/content', middleware_1.middleware, (req, res) => __awaiter(void
         // Fixed: Get userId from req.user (set by middleware)
         // @ts-ignore
         const userId = req.user; // or req.userId depending on your middleware
+        
         // Fixed: Added 'await' and proper error handling
-        const content = yield db_1.PostsModel.find({
+        let content = yield db_1.PostsModel.find({
             userId: new mongoose_1.default.Types.ObjectId(userId)
-        }); // Added tags population
+        });
+
+        // Map tag IDs to tag names
+        if (content && content.length > 0) {
+            // Collect all unique tag IDs from all posts
+            const allTagIds = [...new Set(content.flatMap(post => 
+                (post.tags || []).map(tagId => tagId.toString())
+            ))];
+            
+            if (allTagIds.length > 0) {
+                // Get all tags in one query
+                const allTags = yield db_1.TagsModel.find({
+                    _id: { $in: allTagIds }
+                }).select('title');
+                
+                // Create a map for quick lookup
+                const tagMap = new Map(allTags.map(tag => [tag._id.toString(), tag.title]));
+                console.log('Tag Map:', tagMap);
+                
+                // Convert to plain objects and replace tag IDs with names
+                const contentWithTagNames = content.map(post => {
+                    const postObj = post.toObject(); // Convert Mongoose document to plain object
+                    if (postObj.tags && postObj.tags.length > 0) {
+                        postObj.tags = postObj.tags.map(tagId => {
+                            const tagIdString = tagId.toString();
+                            const tagName = tagMap.get(tagIdString);
+                            console.log(`Mapping ${tagIdString} to ${tagName}`); // Debug log
+                            return tagName || tagIdString; // Fallback to ID string if not found
+                        });
+                    }
+                    return postObj;
+                });
+                
+                // Update content variable to use the modified version
+                content = contentWithTagNames;
+                
+                console.log('Content after mapping:', JSON.stringify(content, null, 2));
+            }
+        }
+
         // Fixed: Return the content properly
         res.status(200).json({
             content: content,

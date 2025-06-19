@@ -47,25 +47,25 @@ export const Sidebarcontent = () => {
           {menuItems.map((item, index) => {
             const IconComponent = item.icon;
             return (
-              <li key={index}>
+             <li key={index}>
                 <a
-                  href="#"
+                  href={`/${item.label.toLowerCase()}`}
                   className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-300 hover:bg-white/10 hover:translate-x-1 group ${
-                    item.active 
-                      ? 'bg-white/20 shadow-lg backdrop-blur-sm' 
-                      : 'hover:shadow-md'
+                  item.active 
+                    ? 'bg-white/20 shadow-lg backdrop-blur-sm' 
+                    : 'hover:shadow-md'
                   }`}
                 >
                   <IconComponent 
-                    size={18} 
-                    className={`transition-transform duration-300 group-hover:scale-110 ${
-                      item.active ? 'text-white' : 'text-white/80'
-                    }`}
+                  size={18} 
+                  className={`transition-transform duration-300 group-hover:scale-110 ${
+                    item.active ? 'text-white' : 'text-white/80'
+                  }`}
                   />
                   <span className={`font-medium text-sm ${
-                    item.active ? 'text-white' : 'text-white/80'
+                  item.active ? 'text-white' : 'text-white/80'
                   }`}>
-                    {item.label}
+                  {item.label}
                   </span>
                 </a>
               </li>

@@ -4,6 +4,8 @@ import { Button } from '../components/Button';
 import { useRef } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../api';
+import { Link } from 'react-router-dom';
+
 
 export const Signup = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -191,9 +193,9 @@ export const Signup = () => {
                         {/* Sign In Link */}
                         <p className="text-center text-gray-600 mt-4 sm:mt-6 text-xs sm:text-sm">
                             Already have an account?{' '}
-                            <a href="/signin" className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors">
+                            <Link to="/signin" className="text-purple-600 hover:text-purple-800 font-semibold hover:underline transition-colors">
                                 Sign In
-                            </a>
+                            </Link>
                         </p>
                     </div>
                 </div>
